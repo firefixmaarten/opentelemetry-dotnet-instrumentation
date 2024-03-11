@@ -45,6 +45,10 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Wcf" />
   </ItemGroup>
 
+  <ItemGroup Condition=" '$(TargetFramework)' == 'net6.0' ">
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson"/>
+  </ItemGroup>
+
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
     <Reference Include="System.ServiceModel" ExcludeAssets="all" />
     <Reference Include="System.Configuration" />

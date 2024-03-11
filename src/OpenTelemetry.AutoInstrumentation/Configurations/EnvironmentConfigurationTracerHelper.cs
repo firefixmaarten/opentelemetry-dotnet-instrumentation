@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Runtime.CompilerServices;
+using System.Text;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using OpenTelemetry.AutoInstrumentation.Loading;
 using OpenTelemetry.AutoInstrumentation.Plugins;
 using OpenTelemetry.Trace;
@@ -128,6 +132,30 @@ internal static class EnvironmentConfigurationTracerHelper
     /// </summary>
     private static class Wrappers
     {
+        public static void ReplaceValuesWithAsterisks(JToken token)
+        {
+            if (token is JValue value)
+            {
+                value.Replace("*");
+            }
+            else if (token is JObject obj)
+            {
+                // Create a copy of the properties to avoid modification during iteration
+                foreach (var property in obj.Properties().ToList())
+                {
+                    ReplaceValuesWithAsterisks(property.Value);
+                }
+            }
+            else if (token is JArray array)
+            {
+                // Create a copy of the items to avoid modification during iteration
+                foreach (var item in array.ToList())
+                {
+                    ReplaceValuesWithAsterisks(item);
+                }
+            }
+        }
+
         // Instrumentations
 
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -169,14 +197,43 @@ internal static class EnvironmentConfigurationTracerHelper
         {
             DelayedInitialization.Traces.AddAspNetCore(lazyInstrumentationLoader, pluginManager);
 
-            if (Environment.Version.Major == 6)
+            return builder
+                 .AddSource("OpenTelemetry.Instrumentation.AspNetCore")
+                 .AddLegacySource("Microsoft.AspNetCore.Hosting.HttpRequestIn")
+                 .AddAspNetCoreInstrumentation(config =>
             {
-                return builder
-                    .AddSource("OpenTelemetry.Instrumentation.AspNetCore")
-                    .AddLegacySource("Microsoft.AspNetCore.Hosting.HttpRequestIn");
-            }
+                config.EnrichWithHttpRequest = (activity, httpRequest) =>
+                {
+                    foreach (var header in httpRequest.Headers)
+                    {
+                        string headerName = header.Key;
+                        string headerContent = string.Join(",", header.Value.ToArray());
+                        activity.SetTag("http.request.header." + headerName, headerContent);
+                    }
 
-            return builder.AddSource("Microsoft.AspNetCore");
+                    if (httpRequest.Body != null && httpRequest.ContentType?.ToLowerInvariant().Contains("application/json") == true)
+                    {
+                        httpRequest.EnableBuffering(); // Enable request body buffering
+
+                        httpRequest.Body.Position = 0;
+
+                        using (var streamReader = new StreamReader(httpRequest.Body, Encoding.UTF8, true, 1024, leaveOpen: true))
+                        {
+                            string body = streamReader.ReadToEndAsync().GetAwaiter().GetResult();
+                            if (!string.IsNullOrEmpty(body))
+                            {
+                                JObject json = JObject.Parse(body);
+                                ReplaceValuesWithAsterisks(json); // Recursively replace all values with "*"
+                                string cleanedJson = JsonConvert.SerializeObject(json, Formatting.None);
+                                activity.SetTag("http.request.body", cleanedJson);
+                            }
+                        }
+
+                        httpRequest.Body.Position = 0; // Reset position
+                    }
+                };
+                config.RecordException = true;
+            });
         }
 
         public static TracerProviderBuilder AddGraphQLInstrumentation(TracerProviderBuilder builder, PluginManager pluginManager, LazyInstrumentationLoader lazyInstrumentationLoader, TracerSettings tracerSettings)
