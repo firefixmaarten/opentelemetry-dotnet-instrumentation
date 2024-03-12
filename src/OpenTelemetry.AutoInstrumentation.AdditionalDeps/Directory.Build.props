@@ -2,8 +2,5 @@
   <ItemGroup>
     <PackageReference Include="System.Diagnostics.DiagnosticSource" />
     <PackageReference Include="Microsoft.Extensions.Logging.Configuration" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson"/>
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
-    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
   </ItemGroup>
 </Project>
