@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson"/>
     <PackageReference Include="OpenTelemetry" />
     <PackageReference Include="OpenTelemetry.Api" />
     <PackageReference Include="OpenTelemetry.Exporter.Console" />
@@ -44,10 +45,6 @@
     <PackageReference Include="OpenTelemetry.ResourceDetectors.ProcessRuntime" />
     <PackageReference Include="OpenTelemetry.Shims.OpenTracing" />
     <PackageReference Include="OpenTelemetry.Instrumentation.Wcf" />
-  </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net6.0' ">
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson"/>
   </ItemGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'net462' ">
