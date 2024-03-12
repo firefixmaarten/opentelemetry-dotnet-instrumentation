@@ -198,8 +198,6 @@ internal static class EnvironmentConfigurationTracerHelper
             DelayedInitialization.Traces.AddAspNetCore(lazyInstrumentationLoader, pluginManager);
 
             return builder
-                 .AddSource("OpenTelemetry.Instrumentation.AspNetCore")
-                 .AddLegacySource("Microsoft.AspNetCore.Hosting.HttpRequestIn")
                  .AddAspNetCoreInstrumentation(config =>
             {
                 config.EnrichWithHttpRequest = (activity, httpRequest) =>
